@@ -1,68 +1,85 @@
 import { useEffect, useState } from "react";
 
-const initialFriends = [
-  {
-    id: 118836,
-    name: "Clark",
-    image: "https://i.pravatar.cc/48?u=118836",
-    balance: -7,
-  },
-  {
-    id: 933372,
-    name: "Sarah",
-    image: "https://i.pravatar.cc/48?u=933372",
-    balance: 20,
-  },
-  {
-    id: 499476,
-    name: "Anthony",
-    image: "https://i.pravatar.cc/48?u=499476",
-    balance: 0,
-  },
-];
-
-
+// const initialFriends = [
+//   {
+//     id: 118836,
+//     name: "Clark",
+//     image: "https://i.pravatar.cc/48?u=118836",
+//     balance: -7,
+//   },
+//   {
+//     id: 933372,
+//     name: "Sarah",
+//     image: "https://i.pravatar.cc/48?u=933372",
+//     balance: 20,
+//   },
+//   {
+//     id: 499476,
+//     name: "Anthony",
+//     image: "https://i.pravatar.cc/48?u=499476",
+//     balance: 0,
+//   },
+// ];
 
 export default function App() {
-
   const [isOpen, setIsOpen] = useState(false);
-  const [friends, setFriends] = useState(initialFriends);
+  const [friends, setFriends] = useState([]);
   const [current, setCurrent] = useState(null);
 
-  function handleSetFriends(friend) {
-    setFriends((friends) => [...friends, friend]);
+  useEffect(() => {
+    async function fetchapi() {
+      try {
+        const res = await fetch("http://localhost:5000/");
+        const data = await res.json();
+        setFriends(data);
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    fetchapi();
+  }, [friends]);
+
+  async function handleSetFriends(friend) {
+    try {
+      await fetch("http://localhost:5000/new", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json", // Adjust the content type as needed
+        },
+        body: JSON.stringify(friend),
+      });
+      // const data = await res.json();
+    } catch (e) {
+      console.log(e);
+    }
     setIsOpen(false);
   }
+
   function handleAddForm() {
     setIsOpen((isOpen) => !isOpen);
     setCurrent(null);
   }
   function handleCurrent(friend) {
-    setCurrent((current) => (current?.id === friend.id ? null : friend));
+    setCurrent((current) => (current?._id === friend._id ? null : friend));
     setIsOpen(false);
   }
-  function handleSplitBill(value) {
-    setFriends((friends) =>
-      friends.map((friend) =>
-        friend.id === current.id
-          ? { ...friend, balance: friend.balance + value }
-          : friend
-      )
-    );
-    setCurrent(null)
+  async function handleSplitBill(value) {
+    try {
+      const res = await fetch("http://localhost:5000/update", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json", // Adjust the content type as needed
+        },
+        body: JSON.stringify({id:current._id , balance:value}),
+      });
+      const data = await res.json();
+      console.log(data)
+    } catch (e) {
+      console.log(e);
+    }
+    setIsOpen(false);
+    setCurrent(null);
   }
-  // useEffect(()=>{
-  //   async function fetchapi(){
-  //     try{const res = await fetch("http://localhost:5000/")
-  //     const data = await res.json()
-  //     setFriends(data)
-  //   }
-  //     catch(e){
-  //       console.log(e)
-  //     }
-  //   }
-  //   fetchapi()
-  // },[friends])
 
   return (
     <div className="app">
@@ -98,7 +115,7 @@ function FriendList({ friends, handleClick, current }) {
       {friends.map((friend) => (
         <Friend
           friend={friend}
-          key={friend.id}
+          key={friend._id}
           handleClick={handleClick}
           current={current}
         />
@@ -109,7 +126,7 @@ function FriendList({ friends, handleClick, current }) {
 
 function Friend({ friend, handleClick, current }) {
   // const [balance, setBalance] = useState(friend.balance);
-  const isSelected = friend.id === current?.id;
+  const isSelected = friend._id === current?._id;
   return (
     <li className={isSelected ? "selected" : ""}>
       <img src={friend.image} alt="" />
@@ -136,7 +153,6 @@ function AddFriendForm({ setFriends }) {
   const newFriend = {
     name,
     image: imgUrl,
-    id: crypto.randomUUID(),
     balance: 0,
   };
   function handleSubmit(e) {
@@ -172,8 +188,8 @@ function AddFriendForm({ setFriends }) {
 }
 
 function BillForm({ current, handleSplitBill }) {
-  const [billValue, setBillValue] = useState(0);
-  const [yourValue, setYourValue] = useState(0);
+  const [billValue, setBillValue] = useState('');
+  const [yourValue, setYourValue] = useState('');
   const friendExpense = billValue ? billValue - yourValue : "";
   const [whoPaying, setWhoPaying] = useState("you");
   let final;
@@ -185,7 +201,7 @@ function BillForm({ current, handleSplitBill }) {
   // }
   function handleSubmit(e) {
     e.preventDefault();
-    if (!billValue || !yourValue) return;
+    if (!billValue) return;
     whoPaying === "you" ? (final = friendExpense) : (final = -yourValue);
     handleSplitBill(final);
     // setOwe(final);
