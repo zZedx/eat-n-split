@@ -87,7 +87,6 @@ export default function App() {
         <FriendList
           friends={friends}
           handleClick={handleCurrent}
-          current={current}
         />
         {isOpen && <AddFriendForm setFriends={handleSetFriends} />}
         <Button handleClick={handleAddForm}>
@@ -95,7 +94,7 @@ export default function App() {
         </Button>
       </div>
       {current && (
-        <BillForm current={current} handleSplitBill={handleSplitBill} />
+        <BillForm key={current._id} current={current} handleSplitBill={handleSplitBill}/>
       )}
     </div>
   );
